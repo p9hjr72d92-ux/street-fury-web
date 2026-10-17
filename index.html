@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Street Fury</title>
+<!-- Ouvert depuis l'icône de l'écran d'accueil : plein écran, sans barres de Safari -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Street Fury">
+<meta name="theme-color" content="#07060d">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap">
+<style>
+  /* Écran d'arcade nocturne : l'image du jeu au centre, commandes tactiles en verre fumé autour.
+     Un seul thème, sombre, comme une borne : le décor du jeu est déjà nocturne. */
+  :root {
+    --night: #07060d;
+    --glass: rgba(255, 255, 255, 0.10);
+    --glass-edge: rgba(255, 255, 255, 0.28);
+    --ink: #f2efe6;
+    --neon: #ffdc32;
+    --btn-a: #4fbf4f;
+    --btn-b: #e2443c;
+    --btn-x: #3f7fe6;
+    --btn-y: #f2c230;
+    --label: 'Bungee', 'Arial Black', Impact, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--ink);
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #screen { display: block; background: #000; image-rendering: auto; }
+  body.portrait #stage { align-items: flex-start; padding-top: env(safe-area-inset-top, 0px); }
+
+  /* Commandes tactiles : visibles sur écran tactile seulement */
+  .ctl { position: fixed; display: none; z-index: 2; }
+  @media (pointer: coarse) { .ctl { display: block; } }
+  body.touched .ctl { display: block; }
+
+  #dpad {
+    left: calc(env(safe-area-inset-left, 0px) + 18px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    background: var(--glass);
+    border: 2px solid var(--glass-edge);
+    touch-action: none;
+  }
+  #dpad::before, #dpad::after { /* la croix gravée */
+    content: ""; position: absolute; background: rgba(255, 255, 255, 0.10); border-radius: 6px;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+  }
+  #dpad::before { width: 42px; height: 118px; }
+  #dpad::after { width: 118px; height: 42px; }
+  #knob {
+    position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px;
+    border-radius: 50%; background: rgba(255, 255, 255, 0.30); border: 2px solid rgba(255, 255, 255, 0.5);
+    pointer-events: none; z-index: 1;
+  }
+
+  #face {
+    right: calc(env(safe-area-inset-right, 0px) + 14px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    width: 178px; height: 178px;
+  }
+  .face-btn {
+    position: absolute; width: 64px; height: 64px; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    font: 22px/1 var(--label); color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    opacity: 0.82; touch-action: none; padding: 0;
+  }
+  .face-btn small { font: 8px/1 var(--label); letter-spacing: 0.06em; opacity: 0.9; }
+  .face-btn.on { opacity: 1; transform: scale(0.92); filter: brightness(1.25); }
+  #btn-y { left: 57px; top: 0; background: var(--btn-y); color: #2a2000; text-shadow: none; }
+  #btn-x { left: 0; top: 57px; background: var(--btn-x); }
+  #btn-b { right: 0; top: 57px; background: var(--btn-b); }
+  #btn-a { left: 57px; bottom: 0; background: var(--btn-a); }
+
+  .pill {
+    position: fixed; z-index: 2;
+    min-width: 72px; height: 34px; padding: 0 12px; border-radius: 17px;
+    background: var(--glass); border: 2px solid var(--glass-edge); color: var(--ink);
+    font: 11px/1 var(--label); letter-spacing: 0.05em; touch-action: none;
+  }
+  .pill.on { background: rgba(255, 255, 255, 0.3); }
+  #btn-wave { right: calc(env(safe-area-inset-right, 0px) + 112px); bottom: calc(env(safe-area-inset-bottom, 0px) + 198px); }
+  #btn-grab { right: calc(env(safe-area-inset-right, 0px) + 18px); bottom: calc(env(safe-area-inset-bottom, 0px) + 198px); }
+  #btn-pause {
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    min-width: 44px; width: 44px; padding: 0; font-size: 13px;
+  }
+
+  /* Téléphone tenu droit : l'image en haut, de grandes commandes en dessous */
+  body.portrait #dpad { width: 168px; height: 168px; bottom: calc(env(safe-area-inset-bottom, 0px) + 40px); }
+  body.portrait #face { bottom: calc(env(safe-area-inset-bottom, 0px) + 36px); }
+  body.portrait #btn-wave, body.portrait #btn-grab { bottom: calc(env(safe-area-inset-bottom, 0px) + 232px); }
+  body.portrait #btn-pause { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 288px); }
+  body.portrait .ctl { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) { .face-btn.on { transform: none; } }
+  button:focus-visible { outline: 3px solid var(--neon); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="screen" width="960" height="540" aria-label="Street Fury, écran de jeu"></canvas>
+</div>
+
+<div id="dpad" class="ctl" aria-label="Croix directionnelle"><div id="knob"></div></div>
+
+<div id="face" class="ctl">
+  <button id="btn-y" class="face-btn" data-b="special" aria-label="Spéciale">Y<small>SPÉ</small></button>
+  <button id="btn-x" class="face-btn" data-b="punch" aria-label="Coup de poing">X<small>POING</small></button>
+  <button id="btn-b" class="face-btn" data-b="kick" aria-label="Coup de pied">B<small>PIED</small></button>
+  <button id="btn-a" class="face-btn" data-b="jump" aria-label="Sauter">A<small>SAUT</small></button>
+</div>
+<button id="btn-wave" class="pill ctl" data-b="wave">ONDE</button>
+<button id="btn-grab" class="pill ctl" data-b="grab">PRISE</button>
+<button id="btn-pause" class="pill ctl" data-b="pause" aria-label="Pause">II</button>
+
+<script src="game.js"></script>
+</body>
+</html>
